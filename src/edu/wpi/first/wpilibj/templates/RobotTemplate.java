@@ -35,7 +35,8 @@ import edu.wpi.first.wpilibj.AnalogPotentiometer;
  * creating this project, you must also update the manifest file in the resource
  * directory.
  */
-public class RobotTemplate extends IterativeRobot {
+public class RobotTemplate extends IterativeRobot
+{
 
     /**
      * This function is run when the robot is first started up and should be
@@ -76,6 +77,7 @@ public class RobotTemplate extends IterativeRobot {
     JoystickButton OpAutoIntake = new JoystickButton(JoyOp, 1);   //starts automatic ball intake
     JoystickButton OpDeploy = new JoystickButton(JoyOp, 8);
     JoystickButton OpReloadPrefs = new JoystickButton(JoyOp, 12);   //use this button when changing values in SmartDashboard 
+    
 
     CANJaguar motor1;       //ctrls the drive motors
     CANJaguar motor2;
@@ -99,10 +101,12 @@ public class RobotTemplate extends IterativeRobot {
     final double PI = 3.141592654;
     final double Maxwinch = 3.0;
 
-    public RobotTemplate() {
+    public RobotTemplate()
+    {
     }
 
-    public void CANTimeout() {
+    public void CANTimeout()
+    {
         CANTimeouts++;
         SmartDashboard.putNumber("CANTimeouts", CANTimeouts);
     }
@@ -110,36 +114,52 @@ public class RobotTemplate extends IterativeRobot {
     /*
      * keeps track of the ingest states & transitions b/w them (help here plz) 
      */
-    public void controlIngest() {
+    public void controlIngest()
+    {
 
-        switch (ingestState) {
+        switch (ingestState)
+        {
 
             case 0: //no ingest in progress
                 //check button & advance to state 1 if pressed
                 Ingest.set(0);
-                if (OpAutoIntake.get()) {
+                if (OpAutoIntake.get())
+                {
                     ingestState = 1;
                 }
                 break;
             case 1:
                 cageCommand = 1;// extend cage
                 Ingest.set(1);
-                if (cageState == 1) {
+                if (cageState == 1)
+                {
                     ingestState = 2;
                 }
                 break;
             case 2:
                 Ingest.set(1); //ingest
                 boolean bl = !ballLimitSwitch.get();
-                if (bl) {
+                if (bl)
+                {
                     ingestState = 3;
                 }
                 break;
             case 3:
                 cageCommand = -1; //retract cage
                 Ingest.set(0);
-                if (cageState == -1) {
-                    ingestState = 0;
+                if (cageState == -1)
+                {
+                    ingestState = 4;
+                    autonTimer.reset();
+                    autonTimer.start();
+                }
+                break;
+            case 4:
+                Ingest.set(1);
+                if(autonTimer.get() > 0.75)
+                {
+                    Ingest.set(0);
+                    autonTimer.stop();
                 }
                 break;
             default:
@@ -151,14 +171,24 @@ public class RobotTemplate extends IterativeRobot {
     /*
      * sets the ranges for controlling how fast to run the winch motor
      */
-    public void setWinch(double speed) {
+    public void setWinch(double speed)
+    {
         double len = winchlength.get(); //need to display winchlength to find l
-        if ((len < 1.0) || (len > 4.0)) {
+        if ((len < 1.0) || (len > 4.0))
+        {
             speed = 0.0;
-        } else if ((len < 1.2) && (speed > 0.0)) { //pot values: greater = in, smaller = out
-            speed = 0.0;
-        } else if ((len > 3.9) && (speed < 0.0)) {
-            speed = 0.0;
+        } else
+        {
+            if ((len < 1.2) && (speed > 0.0))
+            { //pot values: greater = in, smaller = out
+                speed = 0.0;
+            } else
+            {
+                if ((len > 3.9) && (speed < 0.0))
+                {
+                    speed = 0.0;
+                }
+            }
         }
         Winch.set(speed); //positive values = out
     }
@@ -166,39 +196,57 @@ public class RobotTemplate extends IterativeRobot {
     /*
      * changes the states of the cage based on the position of the winch
      */
-    public void controlCage() {
+    public void controlCage()
+    {
 
         double len = winchlength.get(); //need to display winchlength to find l
 
-        if (len > 3.6 || !(cageLimitSwitch.get())) {   //get numbers of these later
+        if (len > 3.6 || !(cageLimitSwitch.get()))
+        {   //get numbers of these later
             cageState = -1;
-        } else if (len < 1.7) {
-            cageState = 1;
-        } else {
-            cageState = 0;
+        } else
+        {
+            if (len < 1.7)
+            {
+                cageState = 1;
+            } else
+            {
+                cageState = 0;
+            }
         }
 
-        switch (cageCommand) {
+        switch (cageCommand)
+        {
             case 1: //we want it to go out
-                if (len > 2.6) {
+                if (len > 2.6)
+                {
                     setWinch(0.2); // maximum unwind power
-                } else if (len > 1.6) {
-                    setWinch((len - 1.6) / 5); // soft landing
-                } else {
-                    setWinch(0.0);
+                } else
+                {
+                    if (len > 1.6)
+                    {
+                        setWinch((len - 1.6) / 5); // soft landing
+                    } else
+                    {
+                        setWinch(0.0);
+                    }
                 }
                 break;
             case -1: //want it to go in
-                if (cageState == -1) { //if the cage is already all the way in
+                if (cageState == -1)
+                { //if the cage is already all the way in
                     setWinch(len - 3.8);//so it overcomes the elastic
-                } else {
+                } else
+                {
                     setWinch(-0.35);//else if it is not all the way in set the speed
                 }
                 break;
             case -2:
-                if (!cageLimitSwitch.get()) {
+                if (!cageLimitSwitch.get())
+                {
                     cageCommand = -1;
-                } else {
+                } else
+                {
                     setWinch(-0.35);
                 }
                 break;
@@ -209,13 +257,16 @@ public class RobotTemplate extends IterativeRobot {
 
     }
 
-    public void robotInit() {
+    public void robotInit()
+    {
 
         SmartDashboard.putNumber("CAN timeouts", CANTimeouts);
         boolean CANInit = false;
         CANTimeouts = 0;
-        while (CANInit == false) {
-            try {
+        while (CANInit == false)
+        {
+            try
+            {
 //                m_telePeriodicLoops = 0;				// Reset the number of loops in current second
 //                m_dsPacketsReceivedInCurrentSecond = 0;                 // Reset the number of dsPackets in current second
 
@@ -252,7 +303,8 @@ public class RobotTemplate extends IterativeRobot {
                 motor3.enableControl();
                 motor4.enableControl();
                 CANInit = true;
-            } catch (CANTimeoutException ex) {
+            } catch (CANTimeoutException ex)
+            {
                 CANTimeout();
             }
         }
@@ -263,27 +315,32 @@ public class RobotTemplate extends IterativeRobot {
     /**
      * This function is called once before autonomous control
      */
-    public void disabledInit() {
+    public void disabledInit()
+    {
         System.out.println("### DISABLED ###");
     }
 
     /**
      * This function is called periodically during autonomous
      */
-    public void disabledPeriodic() {
+    public void disabledPeriodic()
+    {
     }
 
     /**
      * This function is called once before autonomous control
      */
-    public void autonomousInit() {
+    public void autonomousInit()
+    {
         System.out.println("### AUTONOMOUS MODE ENABLED ###");
         cageCommand = -2;
         autonState = 4;
         autonIngestTime = autonTimer.getUsClock();
-        if (autonSwitch.get()) {
+        if (autonSwitch.get())
+        {
             autonState = 4;
-        } else {
+        } else
+        {
             autonState = 0;
         }
     }
@@ -291,18 +348,22 @@ public class RobotTemplate extends IterativeRobot {
     /**
      * This function is called periodically during autonomous
      */
-    public void autonomousPeriodic() {
+    public void autonomousPeriodic()
+    {
         controlCage();
         controlIngest();
-        switch (autonState) {
+        switch (autonState)
+        {
             case 0:
-                try {
+                try
+                {
                     motor1.setX(0);
                     motor2.setX(0);
                     motor3.setX(0);
                     motor4.setX(0);
                     Ingest.set(0);
-                } catch (CANTimeoutException ex) {
+                } catch (CANTimeoutException ex)
+                {
                     CANTimeout();
                 }
                 break;
@@ -311,28 +372,33 @@ public class RobotTemplate extends IterativeRobot {
                 autonState = 2;
                 break;
             case 2: // Wait for cage to finish deploying
-                if (cageCommand == 0) {
+                if (cageCommand == 0)
+                {
                     ingestState = 1;
                 }
                 autonState = 3;
                 break;
             case 3: // Cage is deployed, ball capture has started
-                if (!ballLimitSwitch.get()) {
+                if (!ballLimitSwitch.get())
+                {
                     autonIngestTime = autonTimer.getUsClock();
                     autonState = 4;
                 }
                 break;
             case 4:
                 driveTime = autonTimer.getUsClock() - autonIngestTime;
-                try {
+                try
+                {
                     motor1.setX(MAX_RPM * 0.5);
                     motor2.setX(-MAX_RPM * 0.5);
                     motor3.setX(-MAX_RPM * 0.5);
                     motor4.setX(MAX_RPM * 0.5);
-                } catch (CANTimeoutException ex) {
+                } catch (CANTimeoutException ex)
+                {
                     CANTimeout();
                 }
-                if (driveTime > 2000000) {   //change this
+                if (driveTime > 2000000)
+                {   //change this
                     autonState = 0;
                 }
         }
@@ -341,7 +407,8 @@ public class RobotTemplate extends IterativeRobot {
     /**
      * This function is called once before autonomous control
      */
-    public void testInit() {
+    public void testInit()
+    {
         System.out.println("### TEST MODE ENABLED ###");
         cageCommand = -2;
     }
@@ -349,29 +416,35 @@ public class RobotTemplate extends IterativeRobot {
     /**
      * This function is called periodically during test mode
      */
-    public void testPeriodic() {
+    public void testPeriodic()
+    {
     }
 
     /**
      * This function is called once before operator control
      */
-    public void teleopInit() {
+    public void teleopInit()
+    {
         System.out.println("### TELEOP MODE ENABLED ###");
-        try {
+        try
+        {
             motor1.enableControl(); //starts feedback ctrl
             motor2.enableControl();
             motor3.enableControl();
             motor4.enableControl();
-        } catch (CANTimeoutException ex) {
+        } catch (CANTimeoutException ex)
+        {
             CANTimeout();
         }
         cageCommand = -2;
     }
 
     // returns speed in ft/s
-    public double RobotSpeed(double[] s) { //get average of all motors and convert to ft/s
+    public double RobotSpeed(double[] s)
+    { //get average of all motors and convert to ft/s
         double sHighest = 0;
-        for (int x = 0; x < 4; x++) {
+        for (int x = 0; x < 4; x++)
+        {
             sHighest += s[x];
         }
         sHighest /= 4;
@@ -383,7 +456,8 @@ public class RobotTemplate extends IterativeRobot {
     /*
      * smartdashboard ctrls
      */
-    public void updatePrefs() {
+    public void updatePrefs()
+    {
         MAX_RPM = prefs.getDouble("M", 0.0);
         P = prefs.getDouble("P", 0.0);   //can change values from here, press button to activate changes
         I = prefs.getDouble("I", 0.0);
@@ -392,7 +466,8 @@ public class RobotTemplate extends IterativeRobot {
         SmartDashboard.putNumber("Jaguar I", I);
         SmartDashboard.putNumber("Jaguar D", D);
         SmartDashboard.putNumber("MAX_RPM", MAX_RPM);
-        try {
+        try
+        {
             motor1.setPID(P, I, D);  //sets PID constants for Jag PID loop
             motor2.setPID(P, I, D);
             motor3.setPID(P, I, D);
@@ -401,101 +476,125 @@ public class RobotTemplate extends IterativeRobot {
             motor2.enableControl();
             motor3.enableControl();
             motor4.enableControl();
-        } catch (CANTimeoutException ex) {
+        } catch (CANTimeoutException ex)
+        {
             CANTimeout();
         }
         System.out.println("finished prefs");
     }
 
     /**
-     * This function is called periodically during operator control
+     * This function is called periodically during operator control This
+     * function is responsible for joystick inputs and motor speed
      */
-    public void teleopPeriodic() {
+    public void teleopPeriodic()
+    {
         controlCage();
         controlIngest();
-        try {
+        try
+        {
             double VertL = -JoyLeft.getY();  //gets vertical & horizontal values from left joystick
             double Horz = (JoyLeft.getX() + JoyRight.getX()) / 2;
             double VertR = -JoyRight.getY(); //gets vertical value from right joystick
+            double JoyKneeOne = 0.05;        //first knee of joystick range which starts 'maneuvering range'
+            double JoyKneeTwo = 0.8;         //second knee of joystick range which ends 'maneuvering range'
+            double JoyMaxRange = 1.0;        //maximum input range of joysticks
 
-            if (Math.abs(VertL) < 0.05) //implements deadzones
+            if (Math.abs(VertL) < JoyKneeOne) //implements deadzones
             {
                 VertL = 0.0;
             }
 
-            if (Math.abs(VertR) < 0.05) //implements deadzones
+            if (Math.abs(VertR) < JoyKneeOne) //implements deadzones
             {
                 VertR = 0.0;
             }
 
-            if ((Math.abs(VertL) >= 0.05) && (Math.abs(VertL) <= 0.8)) //mapping for maneuvering range
+            if ((Math.abs(VertL) >= JoyKneeOne) && (Math.abs(VertL) <= JoyKneeTwo)) //mapping for maneuvering range
             {
-                if (VertL < 0.0) {
-                    VertL = (3.0 / 5.0) * VertL - 0.02;
-                } else {
-                    VertL = (3.0 / 5.0) * VertL + 0.02;
-                }
-            } else {
-                if ((Math.abs(VertL) > 0.8) && (Math.abs(VertL) <= 1.0)) //mapping for maneuvering range
+                if (VertL < 0.0)
                 {
-                    if (VertL < 0) {
-                        VertL = (5.0 / 2.0) * VertL + 1.5;
-                    } else {
-                        VertL = (5.0 / 2.0) * VertL - 1.5;
+                    VertL = (3.0 / 5.0) * VertL - 0.02;     //changes raw negative input into a maneuverable speed
+                } else
+                {
+                    VertL = (3.0 / 5.0) * VertL + 0.02;     //changes raw positive input into a maneuverable speed
+                }
+            } else
+            {
+                if ((Math.abs(VertL) > JoyKneeTwo) && (Math.abs(VertL) <= JoyMaxRange)) //mapping for speed range
+                {
+                    if (VertL < 0)
+                    {
+                        VertL = (5.0 / 2.0) * VertL + 1.5;  //changes raw negative input into a fast speed
+                    } else
+                    {
+                        VertL = (5.0 / 2.0) * VertL - 1.5;  //changes raw positive input into a fast speed
                     }
                 }
             }
 
-            if ((Math.abs(VertR) >= 0.05) && (Math.abs(VertR) <= 0.8)) //mapping for maneuvering range
+            if ((Math.abs(VertR) >= JoyKneeOne) && (Math.abs(VertR) <= JoyKneeTwo)) //mapping for maneuvering range
             {
-                if (VertR < 0.0) {
+                if (VertR < 0.0)
+                {
                     VertR = (3.0 / 5.0) * VertR - 0.02;
-                } else {
+                } else
+                {
                     VertR = (3.0 / 5.0) * VertR + 0.02;
                 }
-            } else {
-                if ((Math.abs(VertR) > 0.8) && (Math.abs(VertR) <= 1.0)) //mapping for maneuvering range
+            } else
+            {
+                if ((Math.abs(VertR) > JoyKneeTwo) && (Math.abs(VertR) <= JoyMaxRange)) //mapping for speed range
                 {
-                    if (VertR < 0.0) {
+                    if (VertR < 0.0)
+                    {
                         VertR = (5.0 / 2.0) * VertR + 1.5;
-                    } else {
+                    } else
+                    {
                         VertR = (5.0 / 2.0) * VertR - 1.5;
                     }
                 }
             }
-            
-            //double maxspeed = VertL + VertR;
 
+            //double maxspeed = VertL + VertR;
             //deadband for if not crabbing
-            if (Math.abs(Horz) < 0.25) {
+            if (Math.abs(Horz) < 0.25)
+            {
                 Horz = 0.0;
             } //deadband for crabbing
-            else if (Math.abs(VertL) + Math.abs(VertR) < 1) {
-                VertL = 0;
-                VertR = 0;
+            else
+            {
+                if (Math.abs(VertL) + Math.abs(VertR) < 1)
+                {
+                    VertL = 0;
+                    VertR = 0;
+                }
             }
-/*
-            if (maxspeed > 1.8) {
-                VertL = 1.0;
-                VertR = 1.0;
-                Horz = 0;
-            } else if (maxspeed < -1.8) {
-                VertL = -1.0;
-                VertR = -1.0;
-                Horz = 0;
-            }
-*/
-            if (CrabOn.get() == true) {       //crabbing states
+            /*
+             if (maxspeed > 1.8) {
+             VertL = 1.0;
+             VertR = 1.0;
+             Horz = 0;
+             } else if (maxspeed < -1.8) {
+             VertL = -1.0;
+             VertR = -1.0;
+             Horz = 0;
+             }
+             */
+            if (CrabOn.get() == true)
+            {       //crabbing states
                 CrabState = true;
             }
-            if (CrabOff.get() == true) {
+            if (CrabOff.get() == true)
+            {
                 CrabState = false;
             }
-            if (CrabState == false) {
+            if (CrabState == false)
+            {
                 Horz = 0.0;
             }
 
-                // Joystick values are final:  Horz, VertL, VertR (-1..0..1)
+            // Joystick values are final:  Horz, VertL, VertR (-1..0..1)
             //holonomic code
             double motor1Speed = +VertL - Horz;
             double motor2Speed = -VertR - Horz;
@@ -505,16 +604,20 @@ public class RobotTemplate extends IterativeRobot {
             double biggestValue;
             biggestValue = 1.0;
 
-            if (Math.abs(motor1Speed) > 1.0) {
+            if (Math.abs(motor1Speed) > 1.0)
+            {
                 biggestValue = Math.abs(motor1Speed);
             }
-            if (Math.abs(motor2Speed) > biggestValue) {
+            if (Math.abs(motor2Speed) > biggestValue)
+            {
                 biggestValue = Math.abs(motor2Speed);
             }                                   //finds the biggest motor value
-            if (Math.abs(motor3Speed) > biggestValue) {
+            if (Math.abs(motor3Speed) > biggestValue)
+            {
                 biggestValue = Math.abs(motor3Speed);
             }
-            if (Math.abs(motor4Speed) > biggestValue) {
+            if (Math.abs(motor4Speed) > biggestValue)
+            {
                 biggestValue = Math.abs(motor4Speed);
             }
 
@@ -529,35 +632,51 @@ public class RobotTemplate extends IterativeRobot {
             motor3.setX(MAX_RPM * motor3Speed);
             motor4.setX(MAX_RPM * motor4Speed);
 
-                // Motora are commanded between -500 and 500 RPM
+            // Motora are commanded between -500 and 500 RPM
             // Operator runs star rollers with thumb buttons (press-and-hold)
-            if (OpIntake.get() || DriverIntake.get()) {  //if pressed take ball in
+            if (OpIntake.get() || DriverIntake.get())
+            {  //if pressed take ball in
                 ingestState = 0;
                 Ingest.set(1.0);
-            } else if (OpEject.get() || DriverEject.get()) {       //if pressed eject ball
-                ingestState = 0;
-                Ingest.set(-1.0);
-            } else if (ingestState == 0) {
-                Ingest.set(0.0);
+            } else
+            {
+                if (OpEject.get() || DriverEject.get())
+                {       //if pressed eject ball
+                    ingestState = 0;
+                    Ingest.set(-1.0);
+                } else
+                {
+                    if (ingestState == 0)
+                    {
+                        Ingest.set(0.0);
+                    }
+                }
             }
 
             // Operator controls cage by joystick fwd/back (Y axis)
             double OpWench = JoyOp.getY();
-            if (OpWench > 0.9) {
+            if (OpWench > 0.9)
+            {
                 ingestState = 0;  // Cancel auto-ingest if started
                 cageCommand = -1; // Request cage retract
-            } else if (OpWench < -0.9) {
-                ingestState = 0;  // Cancel auto-ingest if started
-                cageCommand = 1;  // Request cage extend
+            } else
+            {
+                if (OpWench < -0.9)
+                {
+                    ingestState = 0;  // Cancel auto-ingest if started
+                    cageCommand = 1;  // Request cage extend
+                }
             }
 
             // Operator can start auto-capture with trigger
-            if (OpAutoIntake.get()) {
+            if (OpAutoIntake.get())
+            {
                 ingestState = 1;
             }
 
             // Emergency deployment button
-            if (OpDeploy.get()) {
+            if (OpDeploy.get())
+            {
                 cageCommand = -2;
             }
 
@@ -585,11 +704,13 @@ public class RobotTemplate extends IterativeRobot {
             SmartDashboard.putNumber("Left Drive", VertL);
             SmartDashboard.putNumber("Right Drive", VertR);
             SmartDashboard.putNumber("Pot Value", winchlength.get());
-        } catch (CANTimeoutException ex) {
+        } catch (CANTimeoutException ex)
+        {
             CANTimeout();
         }
 
-        if (OpReloadPrefs.get() == true) {
+        if (OpReloadPrefs.get() == true)
+        {
             updatePrefs();
         }
     }
