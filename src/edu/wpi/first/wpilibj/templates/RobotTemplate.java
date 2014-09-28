@@ -112,7 +112,8 @@ public class RobotTemplate extends IterativeRobot
     }
 
     /*
-     * keeps track of the ingest states & transitions b/w them (help here plz) 
+     * keeps track of the ingest states & transitions between them
+     * 
      */
     public void controlIngest()
     {
@@ -122,7 +123,7 @@ public class RobotTemplate extends IterativeRobot
 
             case 0: //no ingest in progress
                 //check button & advance to state 1 if pressed
-                Ingest.set(0);
+                Ingest.set(0);  //rollers are stopped
                 if (OpAutoIntake.get())
                 {
                     ingestState = 1;
@@ -130,7 +131,7 @@ public class RobotTemplate extends IterativeRobot
                 break;
             case 1:
                 cageCommand = 1;// extend cage
-                Ingest.set(1);
+                Ingest.set(1); //makes rollers pick up ball
                 if (cageState == 1)
                 {
                     ingestState = 2;
@@ -146,7 +147,7 @@ public class RobotTemplate extends IterativeRobot
                 break;
             case 3:
                 cageCommand = -1; //retract cage
-                Ingest.set(0);
+                Ingest.set(0); 
                 if (cageState == -1)
                 {
                     ingestState = 4;
@@ -347,11 +348,11 @@ public class RobotTemplate extends IterativeRobot
 
     /**
      * This function is called periodically during autonomous
+     * This function picks up the ball and moves about 15 feet.
      */
     public void autonomousPeriodic()
     {
         controlCage();
-        controlIngest();
         switch (autonState)
         {
             case 0:
@@ -369,14 +370,16 @@ public class RobotTemplate extends IterativeRobot
                 break;
             case 1: // Start cage deployment
                 cageCommand = -2;
+                controlIngest();
                 autonState = 2;
                 break;
             case 2: // Wait for cage to finish deploying
+                controlIngest();
                 if (cageCommand == 0)
                 {
                     ingestState = 1;
                 }
-                autonState = 3;
+                autonState = 4;
                 break;
             case 3: // Cage is deployed, ball capture has started
                 if (!ballLimitSwitch.get())
@@ -397,11 +400,82 @@ public class RobotTemplate extends IterativeRobot
                 {
                     CANTimeout();
                 }
-                if (driveTime > 2000000)
+                if (driveTime > 1900000)
                 {   //change this
-                    autonState = 0;
+                    autonState = 5;
                 }
+                break;
+
+
+            case 5:
+                System.out.println("we have reached case 5 where release should be made");
+                    try
+                    {
+                        motor1.setX(MAX_RPM * 0);
+                        motor2.setX(-MAX_RPM * 0);
+                        motor3.setX(-MAX_RPM * 0);
+                        motor4.setX(MAX_RPM * 0);
+                    } catch (CANTimeoutException ex)
+                        {
+                            CANTimeout();
+                        }
+                    
+                autonState = 6;
+                break;
+            
+            case 6:
+            {
+                autonTimer.reset();
+                autonTimer.start();
+                if(autonTimer.get() > 0.5)
+                {
+                    autonTimer.stop();
+                    autonState = 7;
+                }
+            }
+            
+            case 7:
+                Ingest.set(-1.0);   //rollers release the ball for the remaining time of autonomous
+                
         }
+    }
+    
+    /*
+    This function runs in autonomous mode. The robot moves about 10 feet and scores into the goal
+    */
+    
+    public void autonomousScore()
+    {
+                autonTimer.reset();
+                autonTimer.start();
+                
+                try
+                {
+                    motor1.setX(MAX_RPM * 0.5);
+                    motor2.setX(-MAX_RPM * 0.5);    //The robot starts moving
+                    motor3.setX(-MAX_RPM * 0.5);
+                    motor4.setX(MAX_RPM * 0.5);
+                }catch (CANTimeoutException ex)
+                {
+                    CANTimeout();
+                }
+                
+                if(autonTimer.get() > 1.75)   // after 1.75 seconds the robot turns off the motors
+                {
+                    try
+                    {
+                        motor1.setX(MAX_RPM * 0);
+                        motor2.setX(-MAX_RPM * 0);
+                        motor3.setX(-MAX_RPM * 0);
+                        motor4.setX(MAX_RPM * 0);
+                    } catch (CANTimeoutException ex)
+                        {
+                            CANTimeout();
+                        }
+                    autonTimer.stop();
+                }
+                
+                Ingest.set(-1.0);   //rollers release the ball for the remaining time of autonomous
     }
 
     /**
@@ -497,7 +571,7 @@ public class RobotTemplate extends IterativeRobot
             double Horz = (JoyLeft.getX() + JoyRight.getX()) / 2;
             double VertR = -JoyRight.getY(); //gets vertical value from right joystick
             double JoyKneeOne = 0.05;        //first knee of joystick range which starts 'maneuvering range'
-            double JoyKneeTwo = 0.8;         //second knee of joystick range which ends 'maneuvering range'
+            double JoyKneeTwo = 0.8;         //second knee of joystick range which ends 'maneuvering range' and starts 'speed range'
             double JoyMaxRange = 1.0;        //maximum input range of joysticks
 
             if (Math.abs(VertL) < JoyKneeOne) //implements deadzones
