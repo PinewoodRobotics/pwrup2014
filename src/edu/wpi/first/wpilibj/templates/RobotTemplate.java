@@ -52,6 +52,7 @@ public class RobotTemplate extends IterativeRobot
     double I;
     double D;
     double MAX_RPM;
+    double StartPosition;
 
     double[] motorSpeed = new double[4]; //holds motor speeds (in rpm)
 
@@ -279,6 +280,7 @@ public class RobotTemplate extends IterativeRobot
                 ballLimitSwitch = new DigitalInput(2);
                 autonSwitch = new DigitalInput(3);
                 winchlength = new AnalogPotentiometer(2);
+                motor1.setPositionReference(CANJaguar.PositionReference.kQuadEncoder);    //chooses which kind of encoder to determine speed feedback
                 motor1.setSpeedReference(CANJaguar.SpeedReference.kQuadEncoder);    //chooses which kind of encoder to determine speed feedback
                 motor2.setSpeedReference(CANJaguar.SpeedReference.kQuadEncoder);
                 motor3.setSpeedReference(CANJaguar.SpeedReference.kQuadEncoder);
@@ -291,6 +293,7 @@ public class RobotTemplate extends IterativeRobot
                 motor2.configEncoderCodesPerRev(256);
                 motor3.configEncoderCodesPerRev(256);
                 motor4.configEncoderCodesPerRev(256);
+                StartPosition = motor1.getPosition();
 
                 updatePrefs();
 
@@ -388,26 +391,40 @@ public class RobotTemplate extends IterativeRobot
                     autonState = 4;
                 }
                 break;
+                
             case 4:
+                try {
+                    StartPosition = motor1.getPosition();
+                    autonState = 5;
+                } catch (CANTimeoutException ex)
+                {
+                    CANTimeout();
+                }
+                break;
+                
+            case 5:
                 driveTime = autonTimer.getUsClock() - autonIngestTime;
+                double Distance = 0.0;
                 try
                 {
                     motor1.setX(MAX_RPM * 0.5);
                     motor2.setX(-MAX_RPM * 0.5);
                     motor3.setX(-MAX_RPM * 0.5);
                     motor4.setX(MAX_RPM * 0.5);
+                    Distance = Math.abs(motor1.getPosition()-StartPosition);
                 } catch (CANTimeoutException ex)
                 {
                     CANTimeout();
                 }
-                if (driveTime > 1900000)
+                if (driveTime > 2600000)
+                //if (Distance > 10.0);
                 {   //change this
-                    autonState = 5;
+                    autonState = 6;
                 }
                 break;
 
 
-            case 5:
+            case 6:
                 System.out.println("we have reached case 5 where release should be made");
                     try
                     {
@@ -420,22 +437,33 @@ public class RobotTemplate extends IterativeRobot
                             CANTimeout();
                         }
                     
-                autonState = 6;
+                autonState = 7;
                 break;
             
-            case 6:
+            case 7:
             {
-                autonTimer.reset();
-                autonTimer.start();
-                if(autonTimer.get() > 0.5)
+                //autonTimer.reset();
+                //autonTimer.start();
+                try
                 {
-                    autonTimer.stop();
-                    autonState = 7;
+                    if (Math.abs(motor2.getSpeed()) < 10)
+                    {
+                        //autonTimer.stop();
+                        autonState = 8;
+                    }
                 }
+                catch (CANTimeoutException ex)
+                {
+                    CANTimeout();
+                }   
+                
+                break;
             }
             
-            case 7:
+            
+            case 8:
                 Ingest.set(-1.0);   //rollers release the ball for the remaining time of autonomous
+                break;
                 
         }
     }
@@ -764,6 +792,7 @@ public class RobotTemplate extends IterativeRobot
             double command3Speed = motor3Speed;
             double command4Speed = motor4Speed;
 
+            SmartDashboard.putNumber("Motor1 Position", Math.abs(motor1.getPosition()-StartPosition));  //displays motor position on SmartDash
             SmartDashboard.putNumber("Motor1 Speed", motorSpeed[0]);  //displays motor speed on SmartDash
             SmartDashboard.putNumber("Motor2 Speed", motorSpeed[1]);
             SmartDashboard.putNumber("Motor3 Speed", motorSpeed[2]);
