@@ -416,8 +416,8 @@ public class RobotTemplate extends IterativeRobot
                 {
                     CANTimeout();
                 }
-                if (driveTime > 2600000)
-                //if (Distance > 10.0);
+                //if (driveTime > 2600000)
+                if (Distance > 10.0)
                 {   //change this
                     autonState = 6;
                 }
